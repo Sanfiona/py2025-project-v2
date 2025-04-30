@@ -1,4 +1,5 @@
 import random
+from typing import List
 
 class Card:
     # słownik symboli unicode
@@ -76,3 +77,78 @@ class Player():
     def cards_to_str(self):
     # TODO: definicja metody, zwraca stringa z kartami gracza
         return ",".join(self.__hand_)
+
+class GameEngine:
+    def __init__(self, players: List[Player], deck: Deck, small_blind: int = 25, big_blind: int = 50):
+        """Inicjalizuje graczy, talię, blindy i pulę."""
+        self.players = players
+        self.deck = deck
+        self.small_blind = small_blind
+        self.big_blind = big_blind
+        self.pot = 0
+        
+    def play_round(self) -> None:
+        """Przeprowadza jedną rundę:
+           1. Pobiera blindy
+           2. Rozdaje karty
+           3. Rundę zakładów
+           4. Wymianę kart
+           5. Showdown i przyznanie puli
+        """
+        self.collect_blinds()
+        self.deck.shuffle()
+        self.deck.deal(self.players)
+        self.betting_round()
+        self.exchange_cards()
+        winner = self.showdown()
+        self.award_pot(winner)
+
+    def collect_blinds(self) -> None:
+        self.players[0].stack -= self.small_blind
+        self.players[1].stack -= self.big_blind
+        self.pot += self.small_blind + self.big_blind
+
+    def betting_round(self) -> None:
+        for player in self.players:
+            action = self.prompt_bet(player)
+            if action == "fold":
+                self.players.remove(player)
+
+    
+    def prompt_bet(self, player: Player, current_bet: int) -> str:
+        """Pobiera akcję od gracza (human lub bot) — check/call/raise/fold."""
+        return "check"
+    
+    def exchange_cards(self, hand: List[Card], indices: List[int]) -> List[Card]:
+        """Wymienia wskazane karty z ręki gracza, wkłada stare na spód talii."""
+        try:
+            if not all(0 <= idx < len(hand) for idx in indices):
+                raise ValueError("Indeksy musza byc w zakresie 0-4!")
+            
+            if len(self.deck.cards) < len(indices):
+                raise RuntimeError("Brak wystarczajacej liczby kart w talii!")
+
+            new_cards = [self.deck.cards.pop() for i in indices]
+
+            self.deck.cards.extend(hand[index] for index in indices)
+
+            for index, new_card in zip(indices, new_cards):
+                hand[index] = new_card
+
+            return hand  
+
+        except ValueError as ve:
+            print(f"Błąd: {ve}")
+            return hand 
+
+        except RuntimeError as re:
+            print(f"Błąd: {re}")
+            return hand  # 
+    
+    def showdown(self) -> Player:
+        """Porównuje układy pozostałych graczy i zwraca zwycięzcę."""
+        return max(self.players, key=lambda p:sum(ord(card.rank[0]) for card in p.hand))
+    
+    def award_pot(self, winner: Player) -> None:
+        winner.stack += self.pot
+        self.pot = 0
