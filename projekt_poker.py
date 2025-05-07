@@ -102,8 +102,13 @@ class GameEngine:
             indices_to_exchange = self.prompt_exchange_cards(player) 
             self.exchange_cards(player, player.hand, indices_to_exchange)
 
-        winner = self.showdown()
-        self.award_pot(winner)
+        winner = self.showdown()  
+        winnings = self.pot
+        if winner:
+            self.award_pot(winner)
+            print(f"{winner.name} wygrał {winnings} żetonów!")
+        else:
+            print("Brak zwycięzcy w tej rundzie.")
 
     def collect_blinds(self) -> None:
         self.players[0].stack -= self.small_blind
@@ -118,10 +123,40 @@ class GameEngine:
                 self.players.remove(player)
 
     
-    def prompt_bet(self, player: Player, current_bet: int) -> str:
-        """Pobiera akcję od gracza (human lub bot) — check/call/raise/fold."""
-        return "check"
-    
+    def prompt_bet(self, player: Player, current_bet: int) -> tuple[str, int]:
+        """Pobiera akcję gracza — fold, call, raise."""
+        print(f"{player.name}, masz {player.get_stack_amount()} w stacku.")
+        print(f"Minimalny zakład do wyrównania: {current_bet}")
+        print("Dostępne opcje: fold, call, raise X")
+
+        while True:
+            action = input("Twoja decyzja: ").strip().lower()
+
+            if action == "fold":
+                return "fold", 0
+            
+            elif action == "call":
+                if player.get_stack_amount() >= current_bet:
+                    return "call", current_bet
+                else:
+                    print("Nie masz wystarczających funduszy na call!")   
+            
+            elif action.startswith("raise"):
+                try:
+                    amount = int(action.split()[1])
+                    if amount > player.get_stack_amount():
+                        print("Nie masz wystarczających funduszy!")
+                        
+                    else:
+                        return "raise", amount  
+                except ValueError:
+                    print("Podaj prawidłową kwotę raise")
+              
+            
+            else:
+                print("Nieprawidłowa akcja, spróbuj ponownie.")
+                
+
     def exchange_cards(self, player: Player, hand: List[Card], indices: List[int]) -> List[Card]:
         """Wymienia wskazane karty z ręki gracza, wkłada stare na spód talii."""
         try:
@@ -157,9 +192,30 @@ class GameEngine:
             except Exception as e:
                 print(f"Błąd: {e}")
                 print("Spróbuj ponownie.")
+                
     def showdown(self) -> Player:
         """Porównuje układy pozostałych graczy i zwraca zwycięzcę."""
-        return max(self.players, key=lambda p:sum(ord(card.rank[0]) for card in p.hand))
+        best_player = None
+        best_value = -1  
+
+        for player in self.players:
+            hand_value = sum(self.card_rank_value(card.rank) for card in player.hand)  # Oblicz wartość ręki
+            if hand_value > best_value:
+                best_value = hand_value
+                best_player = player
+
+        if best_player:
+            print(f"Zwycięzca: {best_player.name} z ręką: {best_player.cards_to_str()}")
+            return best_player
+        else:
+            print("Nie udało się określić zwycięzcy.")
+            return None
+
+    def card_rank_value(self, rank: str) -> int:
+        """Zwraca wartość karty według rangi."""
+        rank_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10,
+                    'J': 11, 'Q': 12, 'K': 13, 'A': 14}  
+        return rank_values.get(rank, 0)
     
     def award_pot(self, winner: Player) -> None:
         winner.stack += self.pot
@@ -179,4 +235,7 @@ if __name__ == "__main__":
         print(f"{player.name}'s hand: {player.cards_to_str()}")
         print(f"{player.name}'s stack: {player.get_stack_amount()}")
 
-    print(f"Pula po rundzie: {game.pot}")
+  
+
+   
+
