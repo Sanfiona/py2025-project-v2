@@ -1,6 +1,7 @@
 import random
 from typing import List
 from collections import Counter
+import datetime
 
 class InsufficientFundsError(Exception):
     """Wyjątek rzucany, gdy gracz nie ma wystarczających środków."""
@@ -78,13 +79,15 @@ class Player():
         return ", ".join(str(card) for card in self.hand)
 
 class GameEngine:
-    def __init__(self, players: List[Player], deck: Deck, small_blind: int = 25, big_blind: int = 50):
+    def __init__(self, players: List[Player], deck: Deck, small_blind: int = 25, big_blind: int = 50, session_manager = SessionManager):
         """Inicjalizuje graczy, talię, blindy i pulę."""
         self.players = players
         self.deck = deck
         self.small_blind = small_blind
         self.big_blind = big_blind
         self.pot = 0
+        self.session_manager = session_manager
+        self.game_id = str(datetime.now().timestamp())
         
     def play_round(self) -> None:
         """Przeprowadza jedną rundę:
@@ -114,6 +117,19 @@ class GameEngine:
             print(f"{winner.name} wygrał {winnings} żetonów!")
         else:
             print("Brak zwycięzcy w tej rundzie.")
+        
+        session_data = self.generate_session_data()
+        self.session_manager.save_session(session_data, self.game_id)
+
+    def generate_session_data(self):
+        """Generuje dane sesji do zapisania."""
+        session_data = {
+            "players": [player.get_player_hand() for player in self.players],
+            "pot": self.pot,
+            "blinds": {"small_blind": self.small_blind, "big_blind": self.big_blind},
+            "history": []  # Możesz dodać historię zakończonych rozdań
+        }
+        return session_data
 
     def collect_blinds(self) -> None:
         self.players[0].stack -= self.small_blind
@@ -129,9 +145,12 @@ class GameEngine:
                 print(f"{player.name} pasuje.")
                 self.players.remove(player)
             elif action == "call":
-                player.stack -= current_bet
-                self.pot += current_bet
-                print(f"{player.name} sprawdza za {current_bet} żetonów.")
+                if player.get_stack_amount() >= current_bet:
+                    player.stack -= current_bet
+                    self.pot += current_bet
+                    print(f"{player.name} sprawdza za {current_bet} żetonów.")
+                else:
+                    raise InsufficientFundsError(f"{player.name} nie ma wystarczjąco środków")
             elif action == "raise":
                 current_bet = amount
                 player.stack -= amount
