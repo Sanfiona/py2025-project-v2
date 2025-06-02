@@ -10,13 +10,14 @@ class SessionManager:
             os.makedirs(self.data_dir)
 
 
-    def save_session(self, session: dict, game_id: str) -> None:
+    def save_session(self, session: dict) -> None:
         """Zapisuje stan gry i historię zakończonych rozdań do pliku."""
+        game_id = session.get("game_id", "unknown")
         file_name = os.path.join(self.data_dir, f"session_{game_id}.json")
         try:
             with open(file_name, 'w') as file:
                 json.dump(session, file, indent=4)
-            print(f"Sesja gry {game_id} zostalaza zapisana do pliku {file_name}")
+            print(f"Sesja gry {game_id} została zapisana do pliku {file_name}")
         except Exception as e:
             print(f"Nie udalo sie zapisac: {e}")
 
