@@ -263,11 +263,11 @@ class GameEngine:
 
                 if self.gui: self.gui.update_gui_state()
 
-            # 1. Only one player left
+            # Only one player left
             if len(active_players_in_round) <= 1:
                 break
             
-            # 2. All remaining players have matched the current bet or are all-in for less
+            # All remaining players have matched the current bet or are all-in for less
             all_matched_or_all_in = True
             for p in active_players_in_round:
                 if p.bet_for_current_round < self.current_bet and not p.is_all_in:

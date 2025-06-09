@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     human_player = Player(1000, "Human Player")
 
-    num_bots = random.randint(2, 5)  # Random number of bots between 2 and 5
+    num_bots = random.randint(2, 5)  
     bot_names = ["Bot Alpha", "Bot Beta", "Bot Gamma", "Bot Delta", "Bot Epsilon"]
     bots = []
     for i in range(num_bots):
